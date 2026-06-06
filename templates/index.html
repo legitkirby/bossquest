@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BossQuest — Learn to Destroy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../frontend/static/css/style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚔</span>
+        <span class="logo-text">BossQuest</span>
+        <span class="logo-sub">/ Learn to Destroy</span>
+      </div>
+      <nav class="header-nav">
+        <span class="nav-item active">Arena</span>
+        <span class="nav-item">Collection</span>
+        <span class="nav-item">Profile</span>
+      </nav>
+      <div class="header-stats">
+        <div class="stat-chip">
+          <span class="stat-icon">✦</span>
+          <span class="stat-val" id="xp-display">0 XP</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-icon">♥</span>
+          <span class="stat-val">Lv.1</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════
+       MAIN ARENA LAYOUT
+  ═══════════════════════════════════════════ -->
+  <main class="arena-layout">
+
+    <!-- LEFT PANEL: Upload + Card Area -->
+    <aside class="panel panel-left">
+
+      <!-- Upload Section -->
+      <section class="panel-section upload-section">
+        <h2 class="section-title">
+          <span class="title-rune">📜</span>
+          Lesson Scroll
+        </h2>
+        <p class="section-desc">Upload a .txt lesson file to forge a challenge card and summon the boss.</p>
+
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept=".txt,.md" hidden>
+          <div class="upload-icon">⬆</div>
+          <div class="upload-label">Drop scroll here</div>
+          <div class="upload-sub">or click to browse · .txt / .md</div>
+          <button class="btn-upload" id="upload-btn">Choose File</button>
+        </div>
+
+        <!-- File selected indicator -->
+        <div class="file-selected" id="file-selected" style="display:none">
+          <span class="file-icon">📄</span>
+          <span class="file-name" id="file-name-display"></span>
+          <button class="btn-cast" id="cast-btn">⚡ Cast Spell</button>
+        </div>
+
+        <!-- Upload status -->
+        <div class="upload-status" id="upload-status" style="display:none">
+          <div class="status-spinner"></div>
+          <span class="status-text" id="status-text">Consulting the Oracle…</span>
+        </div>
+      </section>
+
+      <!-- Card Area -->
+      <section class="panel-section card-area">
+        <h2 class="section-title">
+          <span class="title-rune">🃏</span>
+          Lesson Cards
+        </h2>
+
+        <div class="card-grid" id="card-grid">
+          <!-- Empty state -->
+          <div class="card-empty" id="card-empty">
+            <div class="empty-icon">◈</div>
+            <p>No cards forged yet.<br>Upload a lesson to begin.</p>
+          </div>
+          <!-- Cards injected here by JS -->
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- CENTER: Boss Arena -->
+    <section class="boss-arena">
+      <div class="arena-header">
+        <span class="arena-label">⚔ Boss Arena ⚔</span>
+      </div>
+
+      <!-- Boss Entity -->
+      <div class="boss-entity" id="boss-entity">
+        <div class="boss-name-tag">
+          <span class="boss-rank">RAID BOSS</span>
+          <span class="boss-name" id="boss-name">The Ignorant Drake</span>
+        </div>
+
+        <div class="boss-sprite" id="boss-sprite">
+          <div class="boss-body">
+            <div class="boss-eye left"></div>
+            <div class="boss-eye right"></div>
+            <div class="boss-mouth"></div>
+          </div>
+          <div class="boss-aura"></div>
+        </div>
+
+        <!-- HP Bar -->
+        <div class="boss-hp-wrap">
+          <div class="hp-label-row">
+            <span class="hp-label">HP</span>
+            <span class="hp-numbers" id="hp-numbers">1000 / 1000</span>
+          </div>
+          <div class="hp-track">
+            <div class="hp-fill" id="hp-fill" style="width:100%"></div>
+            <div class="hp-shine"></div>
+          </div>
+        </div>
+
+        <!-- Boss idle message -->
+        <div class="boss-speech" id="boss-speech">
+          <em>"You dare challenge me without a lesson? Upload a scroll, if you dare…"</em>
+        </div>
+      </div>
+
+      <!-- Quiz Battle Zone (hidden until quiz loads) -->
+      <div class="battle-zone" id="battle-zone" style="display:none">
+        <div class="battle-header">
+          <span class="battle-label">⚡ Quiz Battle</span>
+          <span class="battle-progress" id="battle-progress">Question 1 of 5</span>
+        </div>
+
+        <div class="question-card" id="question-card">
+          <div class="question-text" id="question-text"></div>
+          <div class="options-grid" id="options-grid"></div>
+          <div class="question-feedback" id="question-feedback" style="display:none"></div>
+        </div>
+
+        <div class="battle-controls">
+          <button class="btn-next" id="next-btn" style="display:none">Next Question →</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL: Stats -->
+    <aside class="panel panel-right">
+
+      <section class="panel-section stats-section">
+        <h2 class="section-title">
+          <span class="title-rune">📊</span>
+          Battle Log
+        </h2>
+
+        <div class="stat-block">
+          <div class="stat-row">
+            <span class="sr-label">Damage Dealt</span>
+            <span class="sr-val damage" id="total-damage">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="sr-label">Quizzes Taken</span>
+            <span class="sr-val" id="quiz-count">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="sr-label">Best Score</span>
+            <span class="sr-val" id="best-score">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="sr-label">Cards Forged</span>
+            <span class="sr-val" id="cards-forged">0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section log-section">
+        <h2 class="section-title">
+          <span class="title-rune">📜</span>
+          Combat Log
+        </h2>
+        <div class="combat-log" id="combat-log">
+          <div class="log-entry log-system">Session started. Awaiting challenger…</div>
+        </div>
+      </section>
+
+    </aside>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════
+       QUIZ RESULTS OVERLAY
+  ═══════════════════════════════════════════ -->
+  <div class="results-overlay" id="results-overlay" style="display:none">
+    <div class="results-card">
+      <div class="results-header" id="results-header">⚔ Battle Complete!</div>
+      <div class="results-score" id="results-score"></div>
+      <div class="results-damage" id="results-damage"></div>
+      <div class="results-breakdown" id="results-breakdown"></div>
+      <button class="btn-close-results" id="close-results-btn">Return to Arena</button>
+    </div>
+  </div>
+
+  <script src="../frontend/static/js/app.js"></script>
+</body>
+</html>
