@@ -1,58 +1,57 @@
-# ⚔ BossQuest
+# BossQuest ⚔️
 
-> A gamified learning app where you defeat bosses by acing AI-generated quizzes.
+Gamified learning web app — upload a lesson, Claude generates a quiz, and correct
+answers deal damage to a boss. Duolingo-meets-card-game.
 
-## Setup (60 seconds)
+## Setup
 
-### 1. Install dependencies
 ```bash
+cd bossquest
+python -m venv .venv && source .venv/bin/activate      # optional but recommended
 pip install -r requirements.txt
+cp .env.example .env                                    # then paste your real key
 ```
 
-### 2. Set your API key
+Add your Anthropic API key to `.env`:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+## Run
+
 ```bash
-cp .env.example .env
-# Edit .env and add your Anthropic API key
+uvicorn main:app --reload
+# or: python main.py
 ```
 
-### 3. Run
-```bash
-uvicorn main:app --reload --port 8000
-```
-
-### 4. Open in browser
-```
-http://localhost:8000
-```
+Then open http://127.0.0.1:8000
 
 ## How it works
 
-1. Upload a `.txt` or `.md` lesson file
-2. FastAPI sends it to Claude (`claude-sonnet-4-6`)
-3. Claude returns 5 MCQ questions as JSON (printed to terminal)
-4. Frontend renders the quiz in "battle mode"
-5. Your score determines how much damage you deal to the boss
+1. Drag a `.txt` or `.md` lesson into the left panel (or use **Choose File**).
+2. Hit **Start!** — the file is POSTed to `/upload`, which asks
+   `claude-sonnet-4-6` for 5 multiple-choice questions and returns them as JSON.
+3. Answer the questions. Your score determines the damage dealt:
 
-## Damage formula
+   | Score | Damage |
+   |-------|--------|
+   | 100%  | 150    |
+   | ≥ 80% | 100    |
+   | ≥ 60% | 60     |
+   | ≥ 40% | 20     |
+   | < 40% | 0      |
 
-| Score | Damage |
-|-------|--------|
-| 100%  | 150    |
-| ≥ 80% | 100    |
-| ≥ 60% | 60     |
-| ≥ 40% | 20     |
-| < 40% | 0      |
+4. Beat the boss down from 1000 HP. The full generated quiz is also pretty-printed
+   to your terminal for debugging.
 
-## Project structure
+## Routes
 
-```
-bossquest/
-├── main.py              ← FastAPI app + Claude integration
-├── requirements.txt
-├── .env.example
-├── templates/
-│   └── index.html       ← Single-page frontend
-└── static/
-    ├── css/style.css    ← Dark fantasy styles
-    └── js/app.js        ← Upload + quiz + boss logic
-```
+- `GET /` — the app
+- `POST /upload` — file → quiz JSON
+- `GET /health` — `{"status": "ok"}`
+
+## Not built yet
+
+Auth, SQLite persistence, flashcards, AI summaries, boss tiers, leaderboard,
+mobile-responsive layout. State currently lives in frontend JS variables only.
