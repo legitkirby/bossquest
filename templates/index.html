@@ -10,25 +10,32 @@
     href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="../frontend/css/style.css" />
+  <link rel="stylesheet" href="/frontend/css/style.css" />
+  <link rel="stylesheet" href="/frontend/css/auth.css" />
 </head>
 <body>
   <!-- ============================== HEADER ============================== -->
   <header class="header">
-    <div class="logo">
+    <a class="logo" href="/">
       <span class="logo-owl">🦉</span>
       <span class="logo-text">BossQuest</span>
-    </div>
+    </a>
 
     <nav class="nav">
-      <button class="nav-tab is-active" data-tab="arena">Arena</button>
-      <button class="nav-tab" data-tab="collection">Collection</button>
-      <button class="nav-tab" data-tab="profile">Profile</button>
+      <a class="nav-tab is-active" href="/">Arena</a>
+      <a class="nav-tab" href="/collection">Collection</a>
+      <a class="nav-tab" href="/profile">Profile</a>
     </nav>
 
-    <div class="xp-chip">
-      <span class="xp-bolt">⚡</span>
-      <span id="xp-value">0 XP</span>
+    <div class="header-right">
+      <div class="xp-chip">
+        <span class="xp-bolt">⚡</span>
+        <span id="xp-value">0 XP</span>
+      </div>
+      <a class="user-chip" href="/profile">
+        <span class="user-avatar">🧑‍🚀</span> {{display_name}}
+      </a>
+      <a class="logout-link" href="/logout">Log out</a>
     </div>
   </header>
 
@@ -49,13 +56,11 @@
           <input type="file" id="file-input" accept=".txt,.md" hidden />
         </div>
 
-        <!-- file selected confirmation -->
         <div class="file-confirm" id="file-confirm" hidden>
           <span class="file-confirm-name" id="file-confirm-name">file.txt</span>
           <button class="btn btn-green btn-sm" id="start-btn" type="button">Start! →</button>
         </div>
 
-        <!-- upload status / spinner -->
         <div class="upload-status" id="upload-status" hidden>
           <span class="spinner" id="upload-spinner"></span>
           <span id="upload-status-text">Generating quiz…</span>
@@ -74,9 +79,7 @@
     <section class="arena">
       <h1 class="arena-title">⚔ Boss Arena</h1>
 
-      <!-- IDLE: boss entity -->
       <div class="boss-entity" id="boss-entity">
-        <!-- HP bar -->
         <div class="hp-card">
           <div class="hp-row">
             <span class="hp-label">❤️ Boss HP</span>
@@ -87,42 +90,31 @@
           </div>
         </div>
 
-        <!-- speech bubble -->
         <div class="speech-bubble" id="speech-bubble">
           So you want to fight me? Upload a lesson and try your luck! 😈
         </div>
 
-        <!-- boss SVG -->
         <div class="boss-svg-wrap" id="boss-svg-wrap">
           <svg viewBox="0 0 200 200" width="180" height="180" xmlns="http://www.w3.org/2000/svg" class="boss-svg" aria-label="Boss monster">
-            <!-- feet -->
             <ellipse cx="78" cy="172" rx="16" ry="10" fill="#a855e8" />
             <ellipse cx="122" cy="172" rx="16" ry="10" fill="#a855e8" />
-            <!-- ears / horns -->
             <path d="M62 70 L48 28 L82 58 Z" fill="#ce82ff" />
             <path d="M62 70 L54 40 L74 58 Z" fill="#ffb3d9" />
             <path d="M138 70 L152 28 L118 58 Z" fill="#ce82ff" />
             <path d="M138 70 L146 40 L126 58 Z" fill="#ffb3d9" />
-            <!-- arms -->
             <ellipse cx="42" cy="120" rx="13" ry="20" fill="#ce82ff" transform="rotate(-20 42 120)" />
             <ellipse cx="158" cy="120" rx="13" ry="20" fill="#ce82ff" transform="rotate(20 158 120)" />
-            <!-- body -->
             <ellipse cx="100" cy="115" rx="58" ry="60" fill="#ce82ff" />
-            <!-- belly -->
             <ellipse cx="100" cy="128" rx="38" ry="40" fill="#e3b6ff" />
-            <!-- sparkle on belly -->
             <text x="100" y="140" font-size="22" text-anchor="middle">✨</text>
-            <!-- cheeks -->
             <ellipse cx="70" cy="108" rx="11" ry="8" fill="#ff8fc7" opacity="0.55" />
             <ellipse cx="130" cy="108" rx="11" ry="8" fill="#ff8fc7" opacity="0.55" />
-            <!-- eyes -->
             <ellipse cx="82" cy="92" rx="15" ry="17" fill="#ffffff" />
             <ellipse cx="118" cy="92" rx="15" ry="17" fill="#ffffff" />
             <circle cx="84" cy="95" r="7" fill="#3c3c3c" />
             <circle cx="116" cy="95" r="7" fill="#3c3c3c" />
             <circle cx="87" cy="91" r="2.5" fill="#ffffff" />
             <circle cx="119" cy="91" r="2.5" fill="#ffffff" />
-            <!-- smile -->
             <path d="M84 118 Q100 132 116 118" stroke="#3c3c3c" stroke-width="3.5" fill="none" stroke-linecap="round" />
           </svg>
         </div>
@@ -130,7 +122,6 @@
         <div class="boss-name" id="boss-name">Blobbert the Unschooled</div>
       </div>
 
-      <!-- BATTLE: quiz zone (replaces boss entity) -->
       <div class="battle-zone" id="battle-zone" hidden>
         <div class="battle-header">
           <span class="battle-label">⚡ Quiz Time!</span>
@@ -141,9 +132,7 @@
           <div class="q-number" id="q-number">QUESTION 1</div>
           <div class="q-text" id="q-text">Question goes here</div>
           <div class="options" id="options"></div>
-
           <div class="feedback" id="feedback" hidden></div>
-
           <button class="btn btn-blue btn-continue" id="continue-btn" type="button" hidden>
             Continue →
           </button>
@@ -216,6 +205,6 @@
     </div>
   </div>
 
-  <script src="../frontend/js/app.js"></script>
+  <script src="/frontend/js/app.js"></script>
 </body>
 </html>

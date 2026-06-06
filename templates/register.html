@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account · BossQuest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/frontend/css/style.css" />
+  <link rel="stylesheet" href="/frontend/css/auth.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-owl">🦉</span><span class="logo-text">BossQuest</span>
+      </div>
+      <h1 class="auth-title">Join the fight!</h1>
+      <p class="auth-sub">Create your account to start battling bosses.</p>
+
+      {{error}}
+
+      <form method="post" action="/register" class="auth-form">
+        <label class="field">
+          <span class="field-label">Display name</span>
+          <input class="field-input" type="text" name="display_name" placeholder="Sir Studies-a-Lot" autofocus />
+        </label>
+        <label class="field">
+          <span class="field-label">Username</span>
+          <input class="field-input" type="text" name="username" placeholder="studymaster" autocomplete="username" required />
+        </label>
+        <label class="field">
+          <span class="field-label">Password</span>
+          <input class="field-input" type="password" name="password" placeholder="••••••" autocomplete="new-password" required />
+        </label>
+        <label class="field">
+          <span class="field-label">Confirm password</span>
+          <input class="field-input" type="password" name="confirm" placeholder="••••••" autocomplete="new-password" required />
+        </label>
+        <button class="btn btn-green btn-block" type="submit">Create Account</button>
+      </form>
+
+      <p class="auth-foot">Already have an account? <a href="/login">Log in</a></p>
+      <div class="demo-hint">⚠️ No database yet — new accounts reset when the server restarts.</div>
+    </div>
+  </div>
+</body>
+</html>

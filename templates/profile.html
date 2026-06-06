@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile · BossQuest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/frontend/css/style.css" />
+  <link rel="stylesheet" href="/frontend/css/auth.css" />
+</head>
+<body>
+  <header class="header">
+    <a class="logo" href="/">
+      <span class="logo-owl">🦉</span><span class="logo-text">BossQuest</span>
+    </a>
+    <nav class="nav">
+      <a class="nav-tab" href="/">Arena</a>
+      <a class="nav-tab" href="/collection">Collection</a>
+      <a class="nav-tab is-active" href="/profile">Profile</a>
+    </nav>
+    <div class="header-right">
+      <span class="user-chip"><span class="user-avatar">🧑‍🚀</span> {{display_name}}</span>
+      <a class="logout-link" href="/logout">Log out</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="profile-hero">
+      <div class="profile-avatar">🧑‍🚀</div>
+      <div class="profile-name">{{display_name}}</div>
+      <div class="profile-title">⭐ {{title}}</div>
+      <div class="profile-meta">@{{username}} · Joined {{joined}}</div>
+    </section>
+
+    <h2 class="section-head">📊 Stats</h2>
+    <div class="profile-stats">
+      <div class="pstat"><div class="pstat-emoji">👾</div><div class="pstat-value">3</div><div class="pstat-label">Bosses Defeated</div></div>
+      <div class="pstat"><div class="pstat-emoji">💥</div><div class="pstat-value">4,820</div><div class="pstat-label">Total Damage</div></div>
+      <div class="pstat"><div class="pstat-emoji">✅</div><div class="pstat-value">12</div><div class="pstat-label">Lessons Done</div></div>
+      <div class="pstat"><div class="pstat-emoji">🏅</div><div class="pstat-value">100%</div><div class="pstat-label">Best Score</div></div>
+      <div class="pstat"><div class="pstat-emoji">🔥</div><div class="pstat-value">5</div><div class="pstat-label">Day Streak</div></div>
+      <div class="pstat"><div class="pstat-emoji">⚡</div><div class="pstat-value">1,340</div><div class="pstat-label">Total XP</div></div>
+    </div>
+
+    <h2 class="section-head">🏅 Achievements</h2>
+    <div class="collection-grid">
+      <div class="coll-card rarity-legendary">
+        <div class="coll-emoji">🏆</div>
+        <div class="coll-name">First Victory</div>
+        <div class="coll-rarity">Legendary</div>
+      </div>
+      <div class="coll-card rarity-epic">
+        <div class="coll-emoji">🔥</div>
+        <div class="coll-name">5-Day Streak</div>
+        <div class="coll-rarity">Epic</div>
+      </div>
+      <div class="coll-card rarity-rare">
+        <div class="coll-emoji">🧮</div>
+        <div class="coll-name">Math Whiz</div>
+        <div class="coll-rarity">Rare</div>
+      </div>
+      <div class="coll-card rarity-rare">
+        <div class="coll-emoji">🔬</div>
+        <div class="coll-name">Science Buff</div>
+        <div class="coll-rarity">Rare</div>
+      </div>
+      <div class="coll-card rarity-common">
+        <div class="coll-emoji">📖</div>
+        <div class="coll-name">First Lesson</div>
+        <div class="coll-rarity">Common</div>
+      </div>
+      <div class="coll-card is-locked">
+        <div class="coll-emoji">🔒</div>
+        <div class="coll-name">Perfect Run</div>
+        <div class="coll-rarity">Locked</div>
+      </div>
+      <div class="coll-card is-locked">
+        <div class="coll-emoji">🔒</div>
+        <div class="coll-name">Boss Tier II</div>
+        <div class="coll-rarity">Locked</div>
+      </div>
+      <div class="coll-card is-locked">
+        <div class="coll-emoji">🔒</div>
+        <div class="coll-name">Scholar</div>
+        <div class="coll-rarity">Locked</div>
+      </div>
+    </div>
+
+    <div class="page-note">
+      📌 Stats and achievements are placeholder values for testing. They'll be pulled
+      from your account once the database is connected.
+    </div>
+
+    <a class="btn btn-blue" href="/">⚔ Back to Arena</a>
+  </main>
+</body>
+</html>

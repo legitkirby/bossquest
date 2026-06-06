@@ -1,0 +1,328 @@
+/* ===================================================================== */
+/*  BossQuest — auth.css                                                  */
+/*  Styles for login/register/profile/collection + header additions.     */
+/*  Relies on the design tokens (:root vars) and .btn rules in style.css. */
+/* ===================================================================== */
+
+/* ---- header additions ---------------------------------------------- */
+a.logo { text-decoration: none; }
+
+a.nav-tab { text-decoration: none; display: inline-flex; align-items: center; }
+
+.header-right {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--gray-900);
+  background: var(--gray-100);
+  border: 2px solid var(--gray-200);
+  border-radius: 999px;
+  padding: 6px 12px 6px 8px;
+  transition: all 0.15s ease;
+}
+.user-chip:hover { border-color: var(--blue); background: var(--blue-pale); }
+.user-avatar { font-size: 18px; }
+
+.logout-link {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--gray-600);
+  text-decoration: none;
+  padding: 6px 8px;
+  border-radius: 999px;
+  transition: all 0.15s ease;
+}
+.logout-link:hover { color: var(--red); background: var(--red-pale); }
+
+/* ===================================================================== */
+/*  Auth pages (login / register)                                        */
+/* ===================================================================== */
+.auth-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, var(--blue-pale), transparent 60%),
+    var(--gray-100);
+}
+
+.auth-wrap { width: 100%; max-width: 400px; }
+
+.auth-card {
+  background: var(--white);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 6px 0 var(--gray-200);
+  padding: 30px 28px;
+  text-align: center;
+}
+
+.auth-logo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px; }
+
+.auth-title { font-size: 24px; font-weight: 900; margin-bottom: 4px; }
+.auth-sub { font-size: 14px; font-weight: 700; color: var(--gray-600); margin-bottom: 20px; }
+
+.auth-form { display: flex; flex-direction: column; gap: 14px; text-align: left; margin-bottom: 16px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field-label {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--gray-600);
+}
+.field-input {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gray-900);
+  background: var(--gray-100);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+.field-input::placeholder { color: #b8b8b8; font-weight: 600; }
+.field-input:focus { border-color: var(--blue); background: var(--white); }
+
+.auth-form .btn { margin-top: 4px; }
+
+.auth-error {
+  background: var(--red-pale);
+  border: 2px solid var(--red);
+  color: var(--red-dark);
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.auth-foot { font-size: 14px; font-weight: 700; color: var(--gray-600); margin-top: 4px; }
+.auth-foot a { color: var(--blue); font-weight: 800; text-decoration: none; }
+.auth-foot a:hover { text-decoration: underline; }
+
+.demo-hint {
+  margin-top: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-600);
+  background: var(--yellow-pale);
+  border: 2px solid var(--yellow);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+}
+.demo-hint b { color: var(--gray-900); }
+
+/* ===================================================================== */
+/*  Inner pages (profile / collection)                                   */
+/* ===================================================================== */
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+.page-title { font-size: 26px; font-weight: 900; margin-bottom: 4px; }
+.page-sub { font-size: 14px; font-weight: 700; color: var(--gray-600); margin-bottom: 24px; }
+
+.section-head {
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--gray-600);
+  margin: 8px 0 14px;
+}
+
+.page-note {
+  margin: 24px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray-600);
+  background: var(--blue-pale);
+  border: 2px solid var(--blue);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  line-height: 1.45;
+}
+
+/* ---- profile hero --------------------------------------------------- */
+.profile-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--white);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 4px 0 var(--gray-200);
+  padding: 28px 24px;
+  margin-bottom: 28px;
+}
+.profile-avatar {
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  border-radius: 50%;
+  background: var(--blue-pale);
+  border: 3px solid var(--blue);
+  margin-bottom: 10px;
+}
+.profile-name { font-size: 24px; font-weight: 900; }
+.profile-title {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--purple);
+  background: #f6e9ff;
+  border-radius: 999px;
+  padding: 3px 12px;
+  margin: 6px 0;
+}
+.profile-meta { font-size: 13px; font-weight: 700; color: var(--gray-600); }
+
+/* ---- profile stats grid -------------------------------------------- */
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.pstat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--white);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 16px 12px;
+  text-align: center;
+}
+.pstat-emoji { font-size: 24px; }
+.pstat-value { font-size: 22px; font-weight: 900; }
+.pstat-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--gray-600);
+}
+
+/* ---- collection grid ----------------------------------------------- */
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.coll-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--white);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 0 var(--gray-200);
+  padding: 18px 10px;
+  text-align: center;
+  transition: transform 0.12s ease;
+}
+.coll-card:hover { transform: translateY(-2px); }
+.coll-emoji { font-size: 34px; }
+.coll-name { font-size: 13px; font-weight: 800; }
+.coll-rarity {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.rarity-legendary { border-color: var(--yellow); box-shadow: 0 4px 0 var(--yellow-dark); }
+.rarity-legendary .coll-rarity { color: var(--yellow-dark); }
+.rarity-epic { border-color: var(--purple); box-shadow: 0 4px 0 #a855e8; }
+.rarity-epic .coll-rarity { color: var(--purple); }
+.rarity-rare { border-color: var(--blue); box-shadow: 0 4px 0 var(--blue-dark); }
+.rarity-rare .coll-rarity { color: var(--blue); }
+.rarity-common .coll-rarity { color: var(--gray-600); }
+
+.coll-card.is-locked {
+  background: var(--gray-100);
+  border-style: dashed;
+  box-shadow: none;
+  opacity: 0.65;
+}
+.coll-card.is-locked .coll-emoji { filter: grayscale(1); }
+.coll-card.is-locked .coll-rarity { color: var(--gray-600); }
+
+/* ---- uploaded lessons list (Collection) ---------------------------- */
+.file-list { display: flex; flex-direction: column; gap: 10px; }
+
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--white);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  box-shadow: 0 3px 0 var(--gray-200);
+  padding: 14px 16px;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.file-card:hover { transform: translateX(2px); border-color: var(--blue); }
+.file-emoji { font-size: 28px; flex-shrink: 0; }
+.file-body { flex: 1; min-width: 0; }
+.file-name {
+  font-size: 15px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-meta { font-size: 12px; font-weight: 700; color: var(--gray-600); margin-top: 2px; }
+.file-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--blue-dark);
+  background: var(--blue-pale);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.empty-state {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gray-600);
+  background: var(--gray-100);
+  border: 2px dashed var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 36px 20px;
+}
+.empty-state a { color: var(--blue); font-weight: 800; text-decoration: none; }
+.empty-state a:hover { text-decoration: underline; }
+
+/* ---- responsive ----------------------------------------------------- */
+@media (max-width: 640px) {
+  .profile-stats { grid-template-columns: repeat(2, 1fr); }
+  .collection-grid { grid-template-columns: repeat(2, 1fr); }
+}
