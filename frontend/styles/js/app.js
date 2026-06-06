@@ -1,6 +1,5 @@
 /* ═══════════════════════════════════════════════
-   BOSSQUEST — Frontend App Logic
-   Handles: upload, quiz flow, boss HP, combat log
+   BOSSQUEST — Frontend App Logic (Friendly Edition)
 ═══════════════════════════════════════════════ */
 
 const BOSS_MAX_HP = 1000;
@@ -18,78 +17,74 @@ const state = {
   currentFile: null,
 };
 
-// ── DOM Refs ──────────────────────────────────
-const fileInput       = document.getElementById('file-input');
-const uploadZone      = document.getElementById('upload-zone');
-const uploadBtn       = document.getElementById('upload-btn');
-const fileSelected    = document.getElementById('file-selected');
-const fileNameDisplay = document.getElementById('file-name-display');
-const castBtn         = document.getElementById('cast-btn');
-const uploadStatus    = document.getElementById('upload-status');
-const statusText      = document.getElementById('status-text');
+// ── DOM refs ──────────────────────────────────
+const $ = id => document.getElementById(id);
+const fileInput        = $('file-input');
+const uploadZone       = $('upload-zone');
+const uploadBtn        = $('upload-btn');
+const fileSelected     = $('file-selected');
+const fileNameDisplay  = $('file-name-display');
+const castBtn          = $('cast-btn');
+const uploadStatus     = $('upload-status');
+const statusText       = $('status-text');
 
-const bossSprite      = document.getElementById('boss-sprite');
-const bossName        = document.getElementById('boss-name');
-const bossSpeech      = document.getElementById('boss-speech');
-const hpFill          = document.getElementById('hp-fill');
-const hpNumbers       = document.getElementById('hp-numbers');
+const bossEntity       = $('boss-entity');
+const bossSprite       = $('boss-sprite');
+const bossName         = $('boss-name');
+const bossSpeech       = $('boss-speech');
+const hpFill           = $('hp-fill');
+const hpNumbers        = $('hp-numbers');
 
-const bossEntity      = document.getElementById('boss-entity');
-const battleZone      = document.getElementById('battle-zone');
-const battleProgress  = document.getElementById('battle-progress');
-const questionText    = document.getElementById('question-text');
-const optionsGrid     = document.getElementById('options-grid');
-const questionFeedback= document.getElementById('question-feedback');
-const nextBtn         = document.getElementById('next-btn');
+const battleZone       = $('battle-zone');
+const battleProgressWrap = $('battle-progress-wrap');
+const questionNum      = $('question-num');
+const questionText     = $('question-text');
+const optionsGrid      = $('options-grid');
+const questionFeedback = $('question-feedback');
+const fbIcon           = $('fb-icon');
+const fbText           = $('fb-text');
+const nextBtn          = $('next-btn');
 
-const cardGrid        = document.getElementById('card-grid');
-const cardEmpty       = document.getElementById('card-empty');
+const cardGrid         = $('card-grid');
+const cardEmpty        = $('card-empty');
+const combatLog        = $('combat-log');
+const xpDisplay        = $('xp-display');
 
-const combatLog       = document.getElementById('combat-log');
-const xpDisplay       = document.getElementById('xp-display');
+const resultsOverlay   = $('results-overlay');
+const resultsMascot    = $('results-mascot');
+const resultsHeader    = $('results-header');
+const resultsSub       = $('results-sub');
+const resultsScore     = $('results-score');
+const resultsDamage    = $('results-damage');
+const resultsXp        = $('results-xp');
+const closeResultsBtn  = $('close-results-btn');
 
-const resultsOverlay  = document.getElementById('results-overlay');
-const resultsHeader   = document.getElementById('results-header');
-const resultsScore    = document.getElementById('results-score');
-const resultsDamage   = document.getElementById('results-damage');
-const resultsBreakdown= document.getElementById('results-breakdown');
-const closeResultsBtn = document.getElementById('close-results-btn');
+const totalDamageEl    = $('total-damage');
+const bestScoreEl      = $('best-score');
+const cardsForgedEl    = $('cards-forged');
 
-const totalDamageEl   = document.getElementById('total-damage');
-const quizCountEl     = document.getElementById('quiz-count');
-const bestScoreEl     = document.getElementById('best-score');
-const cardsForgedEl   = document.getElementById('cards-forged');
-
-// ── File Upload Handling ──────────────────────
-
+// ── FILE UPLOAD ───────────────────────────────
 uploadZone.addEventListener('click', () => fileInput.click());
-uploadBtn.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+uploadBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
 
-uploadZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  uploadZone.classList.add('drag-over');
-});
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-uploadZone.addEventListener('drop', (e) => {
+uploadZone.addEventListener('drop', e => {
   e.preventDefault();
   uploadZone.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) handleFileSelect(file);
+  if (e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
 });
-
-fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) handleFileSelect(fileInput.files[0]);
-});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFileSelect(fileInput.files[0]); });
 
 function handleFileSelect(file) {
   if (!file.name.endsWith('.txt') && !file.name.endsWith('.md')) {
-    addLog('Only .txt and .md files are supported.', 'log-wrong');
+    addLog('⚠️ Only .txt and .md files are supported!');
     return;
   }
   state.currentFile = file;
   fileNameDisplay.textContent = file.name;
   fileSelected.style.display = 'flex';
-  bossSpeech.innerHTML = `<em>"A scroll named <strong>${file.name}</strong>… Interesting. Cast the spell when ready."</em>`;
+  bossSpeech.textContent = `"${file.name}"? Ooh, sounds interesting… if you DARE quiz me! 😤`;
 }
 
 castBtn.addEventListener('click', uploadFile);
@@ -97,110 +92,112 @@ castBtn.addEventListener('click', uploadFile);
 async function uploadFile() {
   if (!state.currentFile) return;
 
-  // Show loading state
   uploadStatus.style.display = 'flex';
-  statusText.textContent = 'Consulting the Oracle…';
+  statusText.textContent = 'Cooking up your quiz… 🍳';
   castBtn.disabled = true;
-  castBtn.textContent = '⏳ Casting…';
 
   const formData = new FormData();
   formData.append('file', state.currentFile);
 
   try {
-    statusText.textContent = 'Sending scroll to Claude AI…';
-    const response = await fetch('/upload', {
-      method: 'POST',
-      body: formData,
-    });
+    const res = await fetch('/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Upload failed');
 
-    const data = await response.json();
+    statusText.textContent = 'Quiz ready! Let\'s go! 🚀';
+    addLog(`📤 Uploaded: "${state.currentFile.name}"`, 'log-upload');
+    addLog(`🤖 ${data.quiz.length} questions generated!`, 'log-upload');
 
-    if (!response.ok) {
-      throw new Error(data.detail || 'Upload failed');
-    }
+    forgeCard(state.currentFile.name);
 
-    statusText.textContent = 'Quiz forged! Preparing battle…';
-    addLog(`📄 Scroll uploaded: "${state.currentFile.name}"`, 'log-upload');
-    addLog(`🤖 Claude generated ${data.quiz.length} questions.`, 'log-upload');
-
-    // Forge a lesson card
-    forgeCard(state.currentFile.name, data.quiz.length);
-
-    // Hide upload UI, start quiz
     setTimeout(() => {
       uploadStatus.style.display = 'none';
       fileSelected.style.display = 'none';
       fileInput.value = '';
       castBtn.disabled = false;
-      castBtn.textContent = '⚡ Cast Spell';
       state.currentFile = null;
       startQuiz(data.quiz, data.filename);
-    }, 800);
+    }, 700);
 
   } catch (err) {
-    statusText.textContent = `Error: ${err.message}`;
-    addLog(`❌ ${err.message}`, 'log-wrong');
+    statusText.textContent = `Oops! ${err.message}`;
+    addLog(`❌ ${err.message}`);
     castBtn.disabled = false;
-    castBtn.textContent = '⚡ Cast Spell';
     setTimeout(() => { uploadStatus.style.display = 'none'; }, 3000);
   }
 }
 
-// ── Card Forging ──────────────────────────────
-
-function forgeCard(filename, questionCount) {
+// ── CARD FORGE ────────────────────────────────
+function forgeCard(filename) {
   state.cardsForged++;
   cardsForgedEl.textContent = state.cardsForged;
   cardEmpty.style.display = 'none';
 
-  const cardName = filename.replace(/\.(txt|md)$/, '');
+  const name = filename.replace(/\.(txt|md)$/, '');
+  const emojis = ['📖','🔬','🧮','🌍','🎨','📐','🧬','💡','🏛️','🚀'];
+  const emoji = emojis[(state.cardsForged - 1) % emojis.length];
+
   const card = document.createElement('div');
   card.className = 'lesson-card';
+  card.id = `card-${state.cardsForged}`;
   card.innerHTML = `
     <div class="lc-top">
-      <span class="lc-icon">📖</span>
-      <span class="lc-name" title="${cardName}">${cardName}</span>
-      <span class="lc-dmg">⚔ ?</span>
+      <span class="lc-emoji">${emoji}</span>
+      <span class="lc-name" title="${name}">${name}</span>
+      <span class="lc-badge" id="badge-${state.cardsForged}">In Progress</span>
     </div>
-    <div class="lc-status">Quiz in progress…</div>
+    <div class="lc-sub" id="lc-sub-${state.cardsForged}">Quiz in progress…</div>
   `;
-  card.id = `card-${state.cardsForged}`;
   cardGrid.appendChild(card);
-  return card;
 }
 
-function updateCard(cardIndex, damage, score) {
-  const card = document.getElementById(`card-${cardIndex}`);
-  if (!card) return;
-  card.querySelector('.lc-dmg').textContent = `⚔ ${damage}`;
-  card.querySelector('.lc-status').textContent = `Score: ${score}% · Done`;
-  card.classList.add('active');
+function updateCard(idx, damage, score) {
+  const badge = $(`badge-${idx}`);
+  const sub   = $(`lc-sub-${idx}`);
+  const card  = $(`card-${idx}`);
+  if (badge) { badge.textContent = score + '%'; badge.className = 'lc-badge done'; }
+  if (sub)   sub.textContent = `⚔️ ${damage} damage dealt`;
+  if (card)  card.classList.add('active');
 }
 
-// ── Quiz Flow ─────────────────────────────────
-
+// ── QUIZ ──────────────────────────────────────
 function startQuiz(quiz, filename) {
   state.quiz = quiz;
   state.currentQ = 0;
   state.score = 0;
 
-  // Show battle zone, collapse boss idle message
   bossEntity.style.display = 'none';
   battleZone.style.display = 'block';
+  bossSpeech.textContent = 'Ok ok, let\'s see how much you really know… 🤔';
+  addLog(`⚔️ Battle started: "${filename}"`, 'log-upload');
 
-  bossSpeech.innerHTML = `<em>"So the challenge begins. Answer wisely, scholar…"</em>`;
-  addLog(`⚔ Battle started: "${filename}"`, 'log-upload');
-
+  buildProgressPips();
   renderQuestion();
+}
+
+function buildProgressPips() {
+  battleProgressWrap.innerHTML = '';
+  state.quiz.forEach((_, i) => {
+    const pip = document.createElement('div');
+    pip.className = 'progress-pip' + (i === 0 ? ' current' : '');
+    pip.id = `pip-${i}`;
+    battleProgressWrap.appendChild(pip);
+  });
 }
 
 function renderQuestion() {
   const q = state.quiz[state.currentQ];
-  battleProgress.textContent = `Question ${state.currentQ + 1} of ${state.quiz.length}`;
+  questionNum.textContent = `Question ${state.currentQ + 1} of ${state.quiz.length}`;
   questionText.textContent = q.question;
   questionFeedback.style.display = 'none';
-  questionFeedback.className = 'question-feedback';
   nextBtn.style.display = 'none';
+
+  // Update pips
+  state.quiz.forEach((_, i) => {
+    const pip = $(`pip-${i}`);
+    if (!pip) return;
+    pip.className = 'progress-pip' + (i < state.currentQ ? ' done' : i === state.currentQ ? ' current' : '');
+  });
 
   optionsGrid.innerHTML = '';
   for (const [letter, text] of Object.entries(q.options)) {
@@ -217,7 +214,6 @@ function answerQuestion(chosen, clickedBtn) {
   const correct = q.correct;
   const isCorrect = chosen === correct;
 
-  // Disable all options
   optionsGrid.querySelectorAll('.option-btn').forEach(btn => {
     btn.disabled = true;
     const letter = btn.querySelector('.opt-letter').textContent;
@@ -225,17 +221,18 @@ function answerQuestion(chosen, clickedBtn) {
     else if (letter === chosen && !isCorrect) btn.classList.add('wrong');
   });
 
-  // Show feedback
-  questionFeedback.style.display = 'block';
+  questionFeedback.style.display = 'flex';
   if (isCorrect) {
     state.score++;
     questionFeedback.className = 'question-feedback correct-fb';
-    questionFeedback.textContent = `✓ Correct! ${q.explanation}`;
-    addLog(`✓ Q${state.currentQ + 1}: Correct`, 'log-correct');
+    fbIcon.textContent = '🎉';
+    fbText.textContent = `Correct! ${q.explanation}`;
+    addLog(`✅ Q${state.currentQ + 1}: Correct!`, 'log-correct');
   } else {
     questionFeedback.className = 'question-feedback wrong-fb';
-    questionFeedback.textContent = `✗ Wrong. The answer was ${correct}. ${q.explanation}`;
-    addLog(`✗ Q${state.currentQ + 1}: Wrong (was ${correct})`, 'log-wrong');
+    fbIcon.textContent = '💡';
+    fbText.textContent = `Not quite! The answer was ${correct}. ${q.explanation}`;
+    addLog(`❌ Q${state.currentQ + 1}: Wrong (was ${correct})`, 'log-wrong');
   }
 
   nextBtn.style.display = 'block';
@@ -243,45 +240,32 @@ function answerQuestion(chosen, clickedBtn) {
 
 nextBtn.addEventListener('click', () => {
   state.currentQ++;
-  if (state.currentQ < state.quiz.length) {
-    renderQuestion();
-  } else {
-    endQuiz();
-  }
+  if (state.currentQ < state.quiz.length) renderQuestion();
+  else endQuiz();
 });
 
 function endQuiz() {
-  const total = state.quiz.length;
-  const pct = Math.round((state.score / total) * 100);
+  const total  = state.quiz.length;
+  const pct    = Math.round((state.score / total) * 100);
   const damage = calcDamage(pct);
 
-  // Update boss HP
-  state.bossHp = Math.max(0, state.bossHp - damage);
+  state.bossHp     = Math.max(0, state.bossHp - damage);
   state.totalDamage += damage;
   state.quizzesTaken++;
-  state.xp += pct;
-
+  state.xp         += pct;
   if (state.bestScore === null || pct > state.bestScore) state.bestScore = pct;
 
-  // Update stats
   totalDamageEl.textContent = state.totalDamage;
-  quizCountEl.textContent = state.quizzesTaken;
-  bestScoreEl.textContent = state.bestScore + '%';
-  xpDisplay.textContent = state.xp + ' XP';
+  bestScoreEl.textContent   = state.bestScore + '%';
+  xpDisplay.textContent     = state.xp + ' XP';
 
-  // Update card
   updateCard(state.cardsForged, damage, pct);
+  updateBossHp(pct, damage);
 
-  // Animate boss
-  updateBossHp(damage, pct);
+  addLog(`🏁 Done! Score: ${pct}% → ⚔️ ${damage} damage`, 'log-damage');
 
-  // Log
-  addLog(`⚔ Battle complete! Score: ${pct}% → ${damage} damage dealt`, 'log-damage');
-
-  // Show results overlay
   showResults(pct, damage, total);
 
-  // Return to boss view
   battleZone.style.display = 'none';
   bossEntity.style.display = 'flex';
 }
@@ -294,63 +278,79 @@ function calcDamage(pct) {
   return 0;
 }
 
-// ── Boss HP ───────────────────────────────────
-
-function updateBossHp(damage, pct) {
+// ── BOSS HP ───────────────────────────────────
+function updateBossHp(pct, damage) {
   const hpPct = (state.bossHp / BOSS_MAX_HP) * 100;
   hpFill.style.width = hpPct + '%';
   hpNumbers.textContent = `${state.bossHp} / ${BOSS_MAX_HP}`;
 
-  if (damage > 0) {
-    // Shake animation
-    bossSprite.classList.remove('hit');
-    void bossSprite.offsetWidth; // reflow
-    bossSprite.classList.add('hit');
-
-    if (pct === 100) {
-      bossSpeech.innerHTML = `<em>"PERFECT SCORE! You wound me deeply, scholar!"</em>`;
-    } else if (pct >= 80) {
-      bossSpeech.innerHTML = `<em>"${damage} damage… you are stronger than I expected."</em>`;
-    } else {
-      bossSpeech.innerHTML = `<em>"${damage} damage. A scratch. Study harder."</em>`;
-    }
-  } else {
-    bossSpeech.innerHTML = `<em>"Ha! You could not even scratch me. Study more."</em>`;
-  }
+  bossSprite.classList.remove('hit');
+  void bossSprite.offsetWidth;
+  if (damage > 0) bossSprite.classList.add('hit');
 
   if (state.bossHp <= 0) {
-    bossName.textContent = '☠ The Ignorant Drake';
-    bossSpeech.innerHTML = `<em>"Impossible… I have been… defeated by knowledge…"</em>`;
+    bossSpeech.textContent = "NOOOO… You actually beat me! I'll be back though… 😭";
+    bossName.textContent   = '💀 Grumble (Defeated!)';
+  } else if (pct === 100) {
+    bossSpeech.textContent = "PERFECT SCORE?! That's not fair!! 😤";
+  } else if (pct >= 80) {
+    bossSpeech.textContent = `Ow! ${damage} damage! You're pretty good… 😠`;
+  } else if (pct >= 60) {
+    bossSpeech.textContent = `Only ${damage} damage? You can do better! 😏`;
+  } else {
+    bossSpeech.textContent = 'Hehe, you need to study more! 😈';
   }
 }
 
-// ── Results Overlay ───────────────────────────
-
+// ── RESULTS ───────────────────────────────────
 function showResults(pct, damage, total) {
-  const grade = pct === 100 ? '🏆 PERFECT!' : pct >= 80 ? '⭐ Great!' : pct >= 60 ? '👍 Good' : '📚 Keep studying';
-  resultsHeader.textContent = grade;
-  resultsScore.textContent = pct + '%';
-  resultsDamage.innerHTML = damage > 0
-    ? `<span style="color:#e87a7a">⚔ ${damage} damage dealt to boss</span>`
-    : `<span style="color:#8a7a5a">No damage (score below 40%)</span>`;
-  resultsBreakdown.innerHTML = `
-    <div style="padding:8px 0;border-bottom:1px solid #c9a84c22">${state.score} / ${total} correct</div>
-    <div style="padding:8px 0;border-bottom:1px solid #c9a84c22">Boss HP: ${state.bossHp} / ${BOSS_MAX_HP}</div>
-    <div style="padding:8px 0">XP gained: +${pct}</div>
-  `;
+  const perfect = pct === 100;
+  const great   = pct >= 80;
+
+  resultsMascot.textContent  = perfect ? '🏆' : great ? '⭐' : pct >= 60 ? '👏' : '📚';
+  resultsHeader.textContent  = perfect ? 'PERFECT!' : great ? 'Great job!' : pct >= 60 ? 'Good work!' : 'Keep studying!';
+  resultsSub.textContent     = `${state.score} out of ${total} correct`;
+  resultsScore.textContent   = pct + '%';
+  resultsScore.style.color   = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow-dark)' : 'var(--red)';
+  resultsDamage.textContent  = damage;
+  resultsXp.textContent      = '+' + pct;
+
   resultsOverlay.style.display = 'flex';
+  if (pct >= 80) launchConfetti();
 }
 
 closeResultsBtn.addEventListener('click', () => {
   resultsOverlay.style.display = 'none';
 });
 
-// ── Combat Log ────────────────────────────────
+// ── CONFETTI ──────────────────────────────────
+function launchConfetti() {
+  const colors = ['#58cc02','#1cb0f6','#ffc800','#ff4b4b','#ce82ff','#ff9600'];
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.cssText = `
+        left: ${Math.random() * 100}vw;
+        top: -10px;
+        background: ${colors[Math.floor(Math.random() * colors.length)]};
+        width: ${6 + Math.random() * 8}px;
+        height: ${6 + Math.random() * 8}px;
+        border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+        animation-duration: ${1.5 + Math.random() * 2}s;
+        animation-delay: ${Math.random() * 0.5}s;
+      `;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }, i * 30);
+  }
+}
 
-function addLog(msg, cls = 'log-system') {
-  const entry = document.createElement('div');
-  entry.className = `log-entry ${cls}`;
-  entry.textContent = msg;
-  combatLog.appendChild(entry);
+// ── COMBAT LOG ────────────────────────────────
+function addLog(msg, cls = '') {
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + cls;
+  el.textContent = msg;
+  combatLog.appendChild(el);
   combatLog.scrollTop = combatLog.scrollHeight;
 }

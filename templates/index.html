@@ -3,93 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BossQuest — Learn to Destroy</title>
+  <title>BossQuest — Learn & Level Up!</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../frontend/static/css/style.css">
 </head>
 <body>
 
-  <!-- ═══════════════════════════════════════════
-       HEADER
-  ═══════════════════════════════════════════ -->
+  <!-- HEADER -->
   <header class="site-header">
     <div class="header-inner">
       <div class="logo">
-        <span class="logo-icon">⚔</span>
+        <div class="logo-owl">🦉</div>
         <span class="logo-text">BossQuest</span>
-        <span class="logo-sub">/ Learn to Destroy</span>
       </div>
       <nav class="header-nav">
         <span class="nav-item active">Arena</span>
         <span class="nav-item">Collection</span>
         <span class="nav-item">Profile</span>
       </nav>
-      <div class="header-stats">
-        <div class="stat-chip">
-          <span class="stat-icon">✦</span>
-          <span class="stat-val" id="xp-display">0 XP</span>
-        </div>
-        <div class="stat-chip">
-          <span class="stat-icon">♥</span>
-          <span class="stat-val">Lv.1</span>
-        </div>
+      <div class="header-xp">
+        <span class="xp-icon">⚡</span>
+        <span class="xp-val" id="xp-display">0 XP</span>
       </div>
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════
-       MAIN ARENA LAYOUT
-  ═══════════════════════════════════════════ -->
+  <!-- MAIN LAYOUT -->
   <main class="arena-layout">
 
-    <!-- LEFT PANEL: Upload + Card Area -->
+    <!-- LEFT PANEL -->
     <aside class="panel panel-left">
 
-      <!-- Upload Section -->
-      <section class="panel-section upload-section">
-        <h2 class="section-title">
-          <span class="title-rune">📜</span>
-          Lesson Scroll
-        </h2>
-        <p class="section-desc">Upload a .txt lesson file to forge a challenge card and summon the boss.</p>
+      <!-- Upload -->
+      <section>
+        <div class="section-title">📤 Upload Lesson</div>
+        <p style="font-size:13px;color:var(--gray-600);font-weight:600;margin-bottom:14px;line-height:1.5">
+          Drop a lesson file and challenge the boss with an AI quiz!
+        </p>
 
         <div class="upload-zone" id="upload-zone">
           <input type="file" id="file-input" accept=".txt,.md" hidden>
-          <div class="upload-icon">⬆</div>
-          <div class="upload-label">Drop scroll here</div>
-          <div class="upload-sub">or click to browse · .txt / .md</div>
-          <button class="btn-upload" id="upload-btn">Choose File</button>
+          <span class="upload-icon">📄</span>
+          <div class="upload-label">Drop your lesson here</div>
+          <div class="upload-sub">.txt or .md · max 6000 chars</div>
+          <button class="btn-primary" id="upload-btn" style="margin-top:4px">Choose File</button>
         </div>
 
-        <!-- File selected indicator -->
         <div class="file-selected" id="file-selected" style="display:none">
-          <span class="file-icon">📄</span>
+          <span class="file-icon">✅</span>
           <span class="file-name" id="file-name-display"></span>
-          <button class="btn-cast" id="cast-btn">⚡ Cast Spell</button>
+          <button class="btn-cast" id="cast-btn">Start! →</button>
         </div>
 
-        <!-- Upload status -->
         <div class="upload-status" id="upload-status" style="display:none">
           <div class="status-spinner"></div>
-          <span class="status-text" id="status-text">Consulting the Oracle…</span>
+          <span class="status-text" id="status-text">Asking the AI…</span>
         </div>
       </section>
 
-      <!-- Card Area -->
-      <section class="panel-section card-area">
-        <h2 class="section-title">
-          <span class="title-rune">🃏</span>
-          Lesson Cards
-        </h2>
-
+      <!-- Card area -->
+      <section>
+        <div class="section-title">🃏 My Lessons</div>
         <div class="card-grid" id="card-grid">
-          <!-- Empty state -->
           <div class="card-empty" id="card-empty">
-            <div class="empty-icon">◈</div>
-            <p>No cards forged yet.<br>Upload a lesson to begin.</p>
+            <span class="empty-icon">🗂️</span>
+            <p class="empty-text">No lessons yet!<br>Upload one to get started.</p>
           </div>
-          <!-- Cards injected here by JS -->
         </div>
       </section>
 
@@ -97,59 +77,94 @@
 
     <!-- CENTER: Boss Arena -->
     <section class="boss-arena">
-      <div class="arena-header">
-        <span class="arena-label">⚔ Boss Arena ⚔</span>
-      </div>
 
-      <!-- Boss Entity -->
+      <div class="arena-title">⚔ Boss Arena</div>
+
+      <!-- Boss entity (shown when idle) -->
       <div class="boss-entity" id="boss-entity">
-        <div class="boss-name-tag">
-          <span class="boss-rank">RAID BOSS</span>
-          <span class="boss-name" id="boss-name">The Ignorant Drake</span>
-        </div>
 
-        <div class="boss-sprite" id="boss-sprite">
-          <div class="boss-body">
-            <div class="boss-eye left"></div>
-            <div class="boss-eye right"></div>
-            <div class="boss-mouth"></div>
-          </div>
-          <div class="boss-aura"></div>
-        </div>
-
-        <!-- HP Bar -->
+        <!-- HP bar -->
         <div class="boss-hp-wrap">
           <div class="hp-label-row">
-            <span class="hp-label">HP</span>
+            <span class="hp-label">❤️ Boss HP</span>
             <span class="hp-numbers" id="hp-numbers">1000 / 1000</span>
           </div>
           <div class="hp-track">
             <div class="hp-fill" id="hp-fill" style="width:100%"></div>
-            <div class="hp-shine"></div>
           </div>
         </div>
 
-        <!-- Boss idle message -->
-        <div class="boss-speech" id="boss-speech">
-          <em>"You dare challenge me without a lesson? Upload a scroll, if you dare…"</em>
+        <!-- Boss character -->
+        <div class="boss-character-wrap">
+          <div class="boss-speech-bubble" id="boss-speech">
+            Hehe, think you can defeat me? Upload a lesson and try! 😏
+          </div>
+
+          <!-- Friendly SVG Monster -->
+          <div class="boss-svg-wrap" id="boss-sprite">
+            <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Body -->
+              <ellipse cx="90" cy="105" rx="58" ry="52" fill="#a78bfa"/>
+              <!-- Belly -->
+              <ellipse cx="90" cy="112" rx="36" ry="30" fill="#c4b5fd"/>
+              <!-- Head -->
+              <ellipse cx="90" cy="68" rx="52" ry="48" fill="#a78bfa"/>
+              <!-- Ears/horns -->
+              <ellipse cx="52" cy="30" rx="12" ry="18" fill="#7c3aed" transform="rotate(-15 52 30)"/>
+              <ellipse cx="128" cy="30" rx="12" ry="18" fill="#7c3aed" transform="rotate(15 128 30)"/>
+              <ellipse cx="52" cy="28" rx="7" ry="11" fill="#f0abfc" transform="rotate(-15 52 28)"/>
+              <ellipse cx="128" cy="28" rx="7" ry="11" fill="#f0abfc" transform="rotate(15 128 28)"/>
+              <!-- Eyes -->
+              <ellipse cx="72" cy="64" rx="16" ry="18" fill="white"/>
+              <ellipse cx="108" cy="64" rx="16" ry="18" fill="white"/>
+              <ellipse cx="74" cy="66" rx="9" ry="10" fill="#1e1b4b"/>
+              <ellipse cx="110" cy="66" rx="9" ry="10" fill="#1e1b4b"/>
+              <!-- Eye shine -->
+              <ellipse cx="77" cy="62" rx="3" ry="3" fill="white"/>
+              <ellipse cx="113" cy="62" rx="3" ry="3" fill="white"/>
+              <!-- Cheeks -->
+              <ellipse cx="56" cy="80" rx="12" ry="8" fill="#f9a8d4" opacity="0.6"/>
+              <ellipse cx="124" cy="80" rx="12" ry="8" fill="#f9a8d4" opacity="0.6"/>
+              <!-- Mouth — friendly smile -->
+              <path d="M75 88 Q90 100 105 88" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" fill="none"/>
+              <!-- Tiny arms -->
+              <ellipse cx="36" cy="108" rx="10" ry="18" fill="#a78bfa" transform="rotate(20 36 108)"/>
+              <ellipse cx="144" cy="108" rx="10" ry="18" fill="#a78bfa" transform="rotate(-20 144 108)"/>
+              <!-- Feet -->
+              <ellipse cx="68" cy="152" rx="18" ry="10" fill="#7c3aed"/>
+              <ellipse cx="112" cy="152" rx="18" ry="10" fill="#7c3aed"/>
+              <!-- Star/sparkle on belly -->
+              <text x="80" y="118" font-size="18" text-anchor="middle">✨</text>
+            </svg>
+          </div>
+
+          <div class="boss-name-row">
+            <span class="boss-rank-tag">STAGE 1 BOSS</span>
+            <span class="boss-name" id="boss-name">Grumble the Confused</span>
+          </div>
         </div>
+
       </div>
 
-      <!-- Quiz Battle Zone (hidden until quiz loads) -->
+      <!-- Battle Zone (hidden until quiz loads) -->
       <div class="battle-zone" id="battle-zone" style="display:none">
         <div class="battle-header">
-          <span class="battle-label">⚡ Quiz Battle</span>
-          <span class="battle-progress" id="battle-progress">Question 1 of 5</span>
+          <span class="battle-label">⚡ Quiz Time!</span>
+          <div class="battle-progress-wrap" id="battle-progress-wrap"></div>
         </div>
 
-        <div class="question-card" id="question-card">
+        <div class="question-card">
+          <div class="question-num" id="question-num">Question 1 of 5</div>
           <div class="question-text" id="question-text"></div>
           <div class="options-grid" id="options-grid"></div>
-          <div class="question-feedback" id="question-feedback" style="display:none"></div>
+          <div class="question-feedback" id="question-feedback" style="display:none">
+            <span class="fb-icon" id="fb-icon"></span>
+            <span id="fb-text"></span>
+          </div>
         </div>
 
         <div class="battle-controls">
-          <button class="btn-next" id="next-btn" style="display:none">Next Question →</button>
+          <button class="btn-next" id="next-btn" style="display:none">Continue →</button>
         </div>
       </div>
 
@@ -158,39 +173,44 @@
     <!-- RIGHT PANEL: Stats -->
     <aside class="panel panel-right">
 
-      <section class="panel-section stats-section">
-        <h2 class="section-title">
-          <span class="title-rune">📊</span>
-          Battle Log
-        </h2>
-
-        <div class="stat-block">
-          <div class="stat-row">
-            <span class="sr-label">Damage Dealt</span>
-            <span class="sr-val damage" id="total-damage">0</span>
+      <section>
+        <div class="section-title">📊 Your Stats</div>
+        <div class="stats-grid">
+          <div class="stat-tile streak">
+            <span class="stat-emoji">🔥</span>
+            <div class="stat-info">
+              <div class="stat-val" id="stat-streak">0</div>
+              <div class="stat-label">Day Streak</div>
+            </div>
           </div>
-          <div class="stat-row">
-            <span class="sr-label">Quizzes Taken</span>
-            <span class="sr-val" id="quiz-count">0</span>
+          <div class="stat-tile damage">
+            <span class="stat-emoji">⚔️</span>
+            <div class="stat-info">
+              <div class="stat-val" id="total-damage">0</div>
+              <div class="stat-label">Damage Dealt</div>
+            </div>
           </div>
-          <div class="stat-row">
-            <span class="sr-label">Best Score</span>
-            <span class="sr-val" id="best-score">—</span>
+          <div class="stat-tile">
+            <span class="stat-emoji">🏆</span>
+            <div class="stat-info">
+              <div class="stat-val" id="best-score">—</div>
+              <div class="stat-label">Best Score</div>
+            </div>
           </div>
-          <div class="stat-row">
-            <span class="sr-label">Cards Forged</span>
-            <span class="sr-val" id="cards-forged">0</span>
+          <div class="stat-tile">
+            <span class="stat-emoji">📚</span>
+            <div class="stat-info">
+              <div class="stat-val" id="cards-forged">0</div>
+              <div class="stat-label">Lessons Done</div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="panel-section log-section">
-        <h2 class="section-title">
-          <span class="title-rune">📜</span>
-          Combat Log
-        </h2>
+      <section>
+        <div class="section-title">📜 Activity</div>
         <div class="combat-log" id="combat-log">
-          <div class="log-entry log-system">Session started. Awaiting challenger…</div>
+          <div class="log-entry">Welcome to BossQuest! Upload a lesson to begin. 👋</div>
         </div>
       </section>
 
@@ -198,19 +218,33 @@
 
   </main>
 
-  <!-- ═══════════════════════════════════════════
-       QUIZ RESULTS OVERLAY
-  ═══════════════════════════════════════════ -->
+  <!-- RESULTS OVERLAY -->
   <div class="results-overlay" id="results-overlay" style="display:none">
     <div class="results-card">
-      <div class="results-header" id="results-header">⚔ Battle Complete!</div>
-      <div class="results-score" id="results-score"></div>
-      <div class="results-damage" id="results-damage"></div>
-      <div class="results-breakdown" id="results-breakdown"></div>
-      <button class="btn-close-results" id="close-results-btn">Return to Arena</button>
+      <span class="results-mascot" id="results-mascot">🎉</span>
+      <div class="results-header" id="results-header">Quiz Complete!</div>
+      <div class="results-sub" id="results-sub">You answered all 5 questions</div>
+
+      <div class="score-ring-wrap">
+        <span class="score-pct" id="results-score">0%</span>
+        <span class="score-label">SCORE</span>
+      </div>
+
+      <div class="results-stats">
+        <div class="rs-chip damage-chip">
+          <span class="rs-val" id="results-damage">0</span>
+          <span class="rs-lbl">Damage</span>
+        </div>
+        <div class="rs-chip xp-chip">
+          <span class="rs-val" id="results-xp">+0</span>
+          <span class="rs-lbl">XP</span>
+        </div>
+      </div>
+
+      <button class="btn-close-results" id="close-results-btn">Keep Going! 🚀</button>
     </div>
   </div>
 
-  <script src="../frontend/static/js/app.js"></script>
+  <script src="../frontend/styles/js/app.js"></script>
 </body>
 </html>
