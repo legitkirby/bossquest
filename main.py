@@ -1,33 +1,16 @@
 """
-BossQuest — FastAPI backend (DeepSeek + simple auth edition).
-
-Auth is intentionally minimal for now: a hardcoded user dict and signed-cookie
-sessions. No database. When you add a DB later, only `USERS`, `authenticate()`,
-and `create_user()` need to change.
-
-Page routes:
-  GET  /            -> Arena (requires login, else -> /login)
-  GET  /login       -> login page
-  POST /login       -> validate creds, start session
-  GET  /register    -> create-account page
-  POST /register    -> create user (in memory), start session
-  GET  /logout      -> end session
-  GET  /profile     -> profile page (requires login)
-  GET  /collection  -> collection page (requires login)
-
-API routes:
-  GET  /health      -> {"status": "ok"}
-  GET  /api/me      -> current user JSON (or 401)
-  POST /upload      -> file -> DeepSeek -> quiz JSON (requires login)
+BossQuest — FastAPI backend (DeepSeek + SQLite edition).
 """
 
 import os
 import re
 import sys
 import json
+import sqlite3
 from html import escape as esc
 from pathlib import Path
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -45,22 +28,74 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
+DB_PATH = BASE_DIR / "bossquest.db"
 
-# Frontend assets live in ./frontend (older layout used ./static).
 FRONTEND_DIR = BASE_DIR / "frontend"
 if not FRONTEND_DIR.exists():
     FRONTEND_DIR = BASE_DIR / "static"
 
-# DeepSeek config -----------------------------------------------------------
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-MODEL = "deepseek-chat"          # DeepSeek-V3. Use "deepseek-reasoner" for R1.
+MODEL = "deepseek-chat"          
 MAX_CHARS = 6000
-MIN_CHARS = 50
+MIN_CHARS = 5
 
-# Session secret. Override in .env for anything beyond local testing.
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
 
-app = FastAPI(title="BossQuest", version="0.3.0")
+def get_db() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db() -> None:
+    """Create tables cleanly with quiz data retention fields."""
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            username     TEXT    UNIQUE NOT NULL,
+            password     TEXT    NOT NULL,
+            display_name TEXT    NOT NULL,
+            title        TEXT    NOT NULL,
+            joined       TEXT    NOT NULL
+        )
+        """
+    )
+
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS uploads (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            username      TEXT    NOT NULL,
+            filename      TEXT    NOT NULL,
+            char_count    INTEGER NOT NULL,
+            num_questions INTEGER NOT NULL,
+            uploaded_at   TEXT    NOT NULL,
+            quiz_json     TEXT    NOT NULL,
+            score_pct     INTEGER DEFAULT NULL
+        )
+        """
+    )
+
+    cur.execute("SELECT COUNT(*) FROM users")
+    if cur.fetchone()[0] == 0:
+        seed_users = [("admin", "admin", "Admin", "Boss Slayer", "2025")]
+        cur.execute(
+            "INSERT INTO users (username, password, display_name, title, joined) VALUES (?, ?, ?, ?, ?)",
+            seed_users[0]
+        )
+    conn.commit()
+    conn.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+app = FastAPI(title="BossQuest", version="0.4.0", lifespan=lifespan)
 
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 app.add_middleware(
@@ -77,117 +112,98 @@ if FRONTEND_DIR.exists():
 
 _client = None
 
-
 def get_client() -> OpenAI:
-    """Build the DeepSeek client on first use, so the app still boots (login,
-    pages) even if no key is configured yet — only /upload needs it."""
     global _client
     if _client is None:
         api_key = os.getenv("DEEPSEEK_API_KEY")
         if not api_key:
-            raise HTTPException(
-                status_code=500,
-                detail="DEEPSEEK_API_KEY is not set. Add it to your .env file.",
-            )
+            raise HTTPException(status_code=500, detail="DEEPSEEK_API_KEY is not set.")
         _client = OpenAI(api_key=api_key, base_url=DEEPSEEK_BASE_URL)
     return _client
 
-# --------------------------------------------------------------------------- #
-# "Database" — hardcoded users (no DB yet)
-# --------------------------------------------------------------------------- #
-# NOTE: plaintext passwords + in-memory store are for local testing ONLY.
-# Replace with a real DB + hashed passwords before this goes anywhere real.
-USERS = {
-    "admin": {
-        "username": "admin",
-        "password": "admin",
-        "display_name": "Admin",
-        "title": "Boss Slayer",
-        "joined": "2025",
-    }
-}
 
+# --------------------------------------------------------------------------- #
+# Database Storage Accessors
+# --------------------------------------------------------------------------- #
+def get_user(username: str):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
 
 def authenticate(username: str, password: str):
-    user = USERS.get(username)
+    user = get_user(username)
     if user and user["password"] == password:
         return user
     return None
 
-
 def create_user(username: str, password: str, display_name: str):
-    """Add a user to the in-memory store. Resets on server restart (no DB)."""
-    USERS[username] = {
-        "username": username,
-        "password": password,
-        "display_name": display_name or username,
-        "title": "Apprentice",
-        "joined": "2025",
-    }
-    return USERS[username]
-
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO users (username, password, display_name, title, joined) VALUES (?, ?, ?, ?, ?)",
+        (username, password, display_name or username, "Apprentice", "2025"),
+    )
+    conn.commit()
+    conn.close()
+    return get_user(username)
 
 def current_user(request: Request):
     username = request.session.get("user")
-    return USERS.get(username) if username else None
+    return get_user(username) if username else None
 
-
-# --------------------------------------------------------------------------- #
-# Uploaded lessons — in-memory store (no DB yet)
-# --------------------------------------------------------------------------- #
-# Maps username -> list of upload records. Replace this with a DB table +
-# query later; only add_upload() and get_uploads() need to change.
-UPLOADS = {
-    "admin": [
-        {"filename": "photosynthesis.md", "char_count": 3120, "num_questions": 5, "uploaded_at": "Jun 02, 2025 · 10:14 AM"},
-        {"filename": "world-war-2.txt", "char_count": 5840, "num_questions": 5, "uploaded_at": "Jun 03, 2025 · 04:47 PM"},
-        {"filename": "algebra-basics.md", "char_count": 2210, "num_questions": 5, "uploaded_at": "Jun 05, 2025 · 09:02 AM"},
-    ]
-}
-
-
-def add_upload(username: str, filename: str, char_count: int, num_questions: int):
-    UPLOADS.setdefault(username, []).append({
-        "filename": filename,
-        "char_count": char_count,
-        "num_questions": num_questions,
-        "uploaded_at": datetime.now().strftime("%b %d, %Y · %I:%M %p"),
-    })
-
+def add_upload(username: str, filename: str, char_count: int, num_questions: int, quiz_json: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO uploads (username, filename, char_count, num_questions, uploaded_at, quiz_json) 
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            username,
+            filename,
+            char_count,
+            num_questions,
+            datetime.now().strftime("%b %d, %Y · %I:%M %p"),
+            quiz_json
+        ),
+    )
+    inserted_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return inserted_id
 
 def get_uploads(username: str) -> list:
-    return UPLOADS.get(username, [])
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT * FROM uploads WHERE username = ? ORDER BY id DESC", (username,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
-
-def render_uploads(username: str) -> str:
-    """Build the Collection list HTML for the str-replace renderer."""
+def render_collection_html(username: str) -> str:
     items = get_uploads(username)
     if not items:
         return (
-            '<div class="empty-state">📭 No lessons uploaded yet. '
+            '<div class="empty-state">📝 No lessons uploaded yet. '
             'Head to the <a href="/">Arena</a> and upload one!</div>'
         )
-    rows = []
-    for u in reversed(items):  # newest first
-        ext = u["filename"].rsplit(".", 1)[-1].lower() if "." in u["filename"] else "txt"
-        emoji = "📝" if ext == "md" else "📄"
-        rows.append(
-            f'<div class="file-card">'
-            f'<div class="file-emoji">{emoji}</div>'
-            f'<div class="file-body">'
-            f'<div class="file-name">{esc(u["filename"])}</div>'
-            f'<div class="file-meta">{esc(str(u["uploaded_at"]))} · '
-            f'{u["char_count"]:,} chars · {u["num_questions"]} questions</div>'
+    cards = []
+    for u in items:
+        status_text = f"Completed ({u['score_pct']}%)" if u["score_pct"] is not None else "Not Started Yet"
+        cards.append(
+            f'<div class="file-card" style="margin-bottom: 12px; padding: 14px; background: #fff; border: 2px solid #e5e5e5; border-radius: 12px;">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center;">'
+            f'<div>'
+            f'<div style="font-weight: 800; font-size: 16px; color: #3c3c3c;">{esc(u["filename"])}</div>'
+            f'<div style="font-size: 13px; color: #777; margin-top: 4px;">{esc(u["uploaded_at"])} · {u["char_count"]} chars</div>'
             f'</div>'
-            f'<span class="file-badge">.{esc(ext)}</span>'
+            f'<span style="background: #ddf4ff; color: #0a91d0; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 12px;">{status_text}</span>'
+            f'</div>'
             f'</div>'
         )
-    return "\n".join(rows)
+    return "\n".join(cards)
 
-
-# --------------------------------------------------------------------------- #
-# Tiny template renderer (str replace — no Jinja needed)
-# --------------------------------------------------------------------------- #
 def render(filename: str, **ctx) -> HTMLResponse:
     path = TEMPLATES_DIR / filename
     if not path.exists():
@@ -195,110 +211,28 @@ def render(filename: str, **ctx) -> HTMLResponse:
     html = path.read_text(encoding="utf-8")
     for key, value in ctx.items():
         html = html.replace("{{" + key + "}}", str(value))
-    # blank out any placeholders the caller didn't supply
     html = re.sub(r"\{\{[a-zA-Z_]+\}\}", "", html)
     return HTMLResponse(content=html)
 
 
-def error_box(message: str) -> str:
-    return f'<div class="auth-error">⚠️ {message}</div>'
-
-
 # --------------------------------------------------------------------------- #
-# DeepSeek helpers
-# --------------------------------------------------------------------------- #
-SYSTEM_PROMPT = (
-    "You are a quiz generator for a gamified learning app. "
-    "You always respond with valid json and nothing else."
-)
-
-QUIZ_PROMPT = """Given the following lesson text, generate exactly 5 multiple-choice questions.
-Rules:
-- Each question must have exactly 4 options (A, B, C, D)
-- Exactly one option must be correct
-- Questions should test understanding, not just memorization
-- Vary difficulty: 2 easy, 2 medium, 1 hard
-Return ONLY valid json, no markdown, no preamble. Use this exact shape:
-{
-  "questions": [
-    {
-      "question": "...",
-      "options": { "A": "...", "B": "...", "C": "...", "D": "..." },
-      "correct": "A",
-      "explanation": "..."
-    }
-  ]
-}
-Lesson text:
----
-{lesson_text}
----"""
-
-
-def strip_fences(text: str) -> str:
-    text = text.strip()
-    if text.startswith("```"):
-        text = re.sub(r"^```[a-zA-Z]*\n?", "", text)
-        text = re.sub(r"\n?```$", "", text)
-    return text.strip()
-
-
-def extract_quiz(parsed) -> list:
-    if isinstance(parsed, list):
-        return parsed
-    if isinstance(parsed, dict):
-        for key in ("questions", "quiz", "items", "data"):
-            if isinstance(parsed.get(key), list):
-                return parsed[key]
-        for value in parsed.values():
-            if isinstance(value, list):
-                return value
-    raise ValueError("response did not contain a list of questions")
-
-
-def pretty_print_quiz(filename: str, quiz: list) -> None:
-    line = "=" * 64
-    print(f"\n{line}\n  QUIZ GENERATED FROM: {filename}\n{line}")
-    for i, q in enumerate(quiz, 1):
-        print(f"\nQ{i}. {q.get('question', '')}")
-        options = q.get("options", {})
-        correct = q.get("correct", "")
-        for letter in ("A", "B", "C", "D"):
-            if letter in options:
-                mark = "  \u2713" if letter == correct else ""
-                print(f"   {letter}) {options[letter]}{mark}")
-        explanation = q.get("explanation", "")
-        if explanation:
-            print(f"   \u2192 {explanation}")
-    print(f"\n{line}\n")
-    sys.stdout.flush()
-
-
-# --------------------------------------------------------------------------- #
-# Auth routes
+# Auth Routes
 # --------------------------------------------------------------------------- #
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    if current_user(request):
-        return RedirectResponse("/", status_code=303)
     return render("login.html", error="")
-
 
 @app.post("/login")
 async def login_submit(request: Request, username: str = Form(...), password: str = Form(...)):
     user = authenticate(username.strip(), password)
     if not user:
-        return render("login.html", error=error_box("Wrong username or password."))
+        return render("login.html", error=f'<div class="auth-error">⚠️ Invalid credentials</div>')
     request.session["user"] = user["username"]
     return RedirectResponse("/", status_code=303)
 
-
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
-    if current_user(request):
-        return RedirectResponse("/", status_code=303)
     return render("register.html", error="")
-
 
 @app.post("/register")
 async def register_submit(
@@ -308,18 +242,14 @@ async def register_submit(
     password: str = Form(...),
     confirm: str = Form(...),
 ):
-    username = username.strip()
-    if not username or not password:
-        return render("register.html", error=error_box("Username and password are required."))
-    if username in USERS:
-        return render("register.html", error=error_box("That username is taken."))
     if password != confirm:
-        return render("register.html", error=error_box("Passwords don't match."))
-
-    user = create_user(username, password, display_name.strip())
+        return render("register.html", error=f'<div class="auth-error">⚠️ Passwords do not match</div>')
+    if get_user(username.strip()):
+        return render("register.html", error=f'<div class="auth-error">⚠️ Username taken</div>')
+    
+    user = create_user(username.strip(), password, display_name.strip())
     request.session["user"] = user["username"]
     return RedirectResponse("/", status_code=303)
-
 
 @app.get("/logout")
 async def logout(request: Request):
@@ -328,124 +258,113 @@ async def logout(request: Request):
 
 
 # --------------------------------------------------------------------------- #
-# Page routes
+# Core Views
 # --------------------------------------------------------------------------- #
+@app.get("/api/lessons")
+async def get_user_lessons(request: Request):
+    user = current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    uploads = get_uploads(user["username"])
+    return {"status": "ok", "lessons": uploads}
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     user = current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=303)
+    
+    # Clean and simple: just pass the user profile info
     return render("index.html", display_name=user["display_name"])
-
 
 @app.get("/profile", response_class=HTMLResponse)
 async def profile(request: Request):
     user = current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=303)
-    return render(
-        "profile.html",
-        display_name=user["display_name"],
-        username=user["username"],
-        title=user["title"],
-        joined=user["joined"],
-    )
-
+    return render("profile.html", display_name=user["display_name"], username=user["username"], title=user["title"], joined=user["joined"])
 
 @app.get("/collection", response_class=HTMLResponse)
 async def collection(request: Request):
     user = current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=303)
-    return render(
-        "collection.html",
-        display_name=user["display_name"],
-        uploads=render_uploads(user["username"]),
-    )
+    return render("collection.html", display_name=user["display_name"], file_list=render_collection_html(user["username"]))
 
 
 # --------------------------------------------------------------------------- #
-# API routes
+# Quiz Engine Actions
 # --------------------------------------------------------------------------- #
-@app.get("/health")
-async def health() -> dict:
-    return {"status": "ok"}
+SYSTEM_PROMPT = "You are a quiz generator for a gamified learning app. You always respond with valid JSON and nothing else."
+QUIZ_PROMPT = """Given the following lesson text, generate exactly 5 multiple-choice questions.
+Return ONLY valid JSON shape:
+{{
+  "questions": [
+    {{
+      "question": "...",
+      "options": {{ "A": "...", "B": "...", "C": "...", "D": "..." }},
+      "correct": "A",
+      "explanation": "..."
+    }}
+  ]
+}}
+Lesson text: {lesson_text}"""
 
-
-@app.get("/api/me")
-async def api_me(request: Request):
-    user = current_user(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Not logged in")
-    return {"username": user["username"], "display_name": user["display_name"], "title": user["title"]}
-
-
-@app.get("/api/uploads")
-async def api_uploads(request: Request):
-    user = current_user(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Not logged in")
-    return {"uploads": get_uploads(user["username"])}
-
+def strip_fences(text: str) -> str:
+    text = text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```[a-zA-Z]*\n?", "", text)
+        text = re.sub(r"\n?```$", "", text)
+    return text.strip()
 
 @app.post("/upload")
 async def upload(request: Request, file: UploadFile = File(...)) -> dict:
-    if not current_user(request):
-        raise HTTPException(status_code=401, detail="Please log in first.")
+    user = current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     filename = file.filename or "lesson.txt"
-    if not filename.lower().endswith((".txt", ".md")):
-        raise HTTPException(status_code=400, detail="Only .txt or .md files are supported.")
-
     raw = await file.read()
-    try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="File must be valid UTF-8 text.")
+    text = raw.decode("utf-8").strip()
 
-    text = text.strip()
     if len(text) < MIN_CHARS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Lesson text too short (minimum {MIN_CHARS} characters).",
-        )
+        raise HTTPException(status_code=400, detail="Lesson text too short.")
 
-    char_count = len(text)
-    lesson_text = text[:MAX_CHARS]
-    prompt = QUIZ_PROMPT.replace("{lesson_text}", lesson_text)
-
-    try:
-        completion = get_client().chat.completions.create(
-            model=MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.7,
-            max_tokens=2000,
-            response_format={"type": "json_object"},
-            stream=False,
-        )
-    except openai.APIError as exc:
-        raise HTTPException(status_code=502, detail=f"DeepSeek API error: {exc}")
-
+    prompt = QUIZ_PROMPT.format(lesson_text=text[:MAX_CHARS])
+    completion = get_client().chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
+        response_format={"type": "json_object"}
+    )
+    
     response_text = strip_fences(completion.choices[0].message.content or "")
+    parsed = json.loads(response_text)
+    quiz = parsed.get("questions", parsed.get("quiz", []))
 
-    try:
-        parsed = json.loads(response_text)
-        quiz = extract_quiz(parsed)
-    except (json.JSONDecodeError, ValueError) as exc:
-        raise HTTPException(status_code=500, detail=f"Failed to parse quiz JSON: {exc}")
+    # IMMEDIATELY save into database with generated quiz
+    db_id = add_upload(user["username"], filename, len(text), len(quiz), json.dumps(quiz))
 
-    pretty_print_quiz(filename, quiz)
+    return {"status": "ok", "db_id": db_id, "filename": filename, "char_count": len(text), "quiz": quiz}
 
-    # remember it for this user's Collection (in-memory until DB exists)
-    add_upload(current_user(request)["username"], filename, char_count, len(quiz))
+@app.post("/api/quiz/{upload_id}/score")
+async def save_score(upload_id: int, request: Request, payload: dict):
+    user = current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    score_pct = payload.get("score_pct")
+    conn = get_db()
+    conn.execute("UPDATE uploads SET score_pct = ? WHERE id = ? AND username = ?", (score_pct, upload_id, user["username"]))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
 
-    return {"status": "ok", "filename": filename, "quiz": quiz, "char_count": char_count}
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+@app.post("/api/quiz/{upload_id}/delete")
+async def delete_lesson(upload_id: int, request: Request):
+    user = current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    conn = get_db()
+    conn.execute("DELETE FROM uploads WHERE id = ? AND username = ?", (upload_id, user["username"]))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
