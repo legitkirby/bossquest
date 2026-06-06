@@ -35,7 +35,7 @@ if not FRONTEND_DIR.exists():
     FRONTEND_DIR = BASE_DIR / "static"
 
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-MODEL = "deepseek-chat"          
+MODEL = "deepseek-chat"
 MAX_CHARS = 6000
 MIN_CHARS = 5
 
@@ -47,7 +47,7 @@ def get_db() -> sqlite3.Connection:
     return conn
 
 def init_db() -> None:
-    """Create tables cleanly with quiz data retention fields."""
+    """Create tables and add missing columns (e.g., original_text)."""
     conn = get_db()
     cur = conn.cursor()
 
@@ -74,10 +74,18 @@ def init_db() -> None:
             num_questions INTEGER NOT NULL,
             uploaded_at   TEXT    NOT NULL,
             quiz_json     TEXT    NOT NULL,
-            score_pct     INTEGER DEFAULT NULL
+            score_pct     INTEGER DEFAULT NULL,
+            original_text TEXT             -- newly added column for storing lesson content
         )
         """
     )
+
+    # --- migration: add original_text column if it does not exist (for existing databases)
+    cur.execute("PRAGMA table_info(uploads)")
+    columns = [col[1] for col in cur.fetchall()]
+    if "original_text" not in columns:
+        cur.execute("ALTER TABLE uploads ADD COLUMN original_text TEXT")
+        conn.commit()
 
     cur.execute("SELECT COUNT(*) FROM users")
     if cur.fetchone()[0] == 0:
@@ -151,13 +159,13 @@ def current_user(request: Request):
     username = request.session.get("user")
     return get_user(username) if username else None
 
-def add_upload(username: str, filename: str, char_count: int, num_questions: int, quiz_json: str):
+def add_upload(username: str, filename: str, char_count: int, num_questions: int, quiz_json: str, original_text: str):
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO uploads (username, filename, char_count, num_questions, uploaded_at, quiz_json) 
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO uploads (username, filename, char_count, num_questions, uploaded_at, quiz_json, original_text) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             username,
@@ -165,7 +173,8 @@ def add_upload(username: str, filename: str, char_count: int, num_questions: int
             char_count,
             num_questions,
             datetime.now().strftime("%b %d, %Y · %I:%M %p"),
-            quiz_json
+            quiz_json,
+            original_text
         ),
     )
     inserted_id = cur.lastrowid
@@ -181,6 +190,14 @@ def get_uploads(username: str) -> list:
     conn.close()
     return [dict(r) for r in rows]
 
+def get_upload_by_id(upload_id: int, username: str):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT * FROM uploads WHERE id = ? AND username = ?", (upload_id, username)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
 def render_collection_html(username: str) -> str:
     items = get_uploads(username)
     if not items:
@@ -192,15 +209,22 @@ def render_collection_html(username: str) -> str:
     for u in items:
         status_text = f"Completed ({u['score_pct']}%)" if u["score_pct"] is not None else "Not Started Yet"
         cards.append(
-            f'<div class="file-card" style="margin-bottom: 12px; padding: 14px; background: #fff; border: 2px solid #e5e5e5; border-radius: 12px;">'
-            f'<div style="display: flex; justify-content: space-between; align-items: center;">'
-            f'<div>'
-            f'<div style="font-weight: 800; font-size: 16px; color: #3c3c3c;">{esc(u["filename"])}</div>'
-            f'<div style="font-size: 13px; color: #777; margin-top: 4px;">{esc(u["uploaded_at"])} · {u["char_count"]} chars</div>'
-            f'</div>'
-            f'<span style="background: #ddf4ff; color: #0a91d0; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 12px;">{status_text}</span>'
-            f'</div>'
-            f'</div>'
+            f'''
+            <div class="file-item" data-id="{u['id']}">
+                <div class="file-card" style="margin-bottom: 8px; padding: 14px; background: #fff; border: 2px solid #e5e5e5; border-radius: 12px; cursor: pointer;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 800; font-size: 16px; color: #3c3c3c;">{esc(u['filename'])}</div>
+                            <div style="font-size: 13px; color: #777; margin-top: 4px;">{esc(u['uploaded_at'])} · {u['char_count']} chars</div>
+                        </div>
+                        <span style="background: #ddf4ff; color: #0a91d0; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 12px;">{status_text}</span>
+                    </div>
+                </div>
+                <div class="summary-dropdown" style="display: none; margin-top: 8px; margin-bottom: 12px; padding: 12px 16px; background: #f7f7f7; border-left: 4px solid #1cb0f6; border-radius: 10px;">
+                    <div class="summary-content" style="font-size: 14px; font-weight: 600; color: #3c3c3c;">✨ Click to load summary...</div>
+                </div>
+            </div>
+            '''
         )
     return "\n".join(cards)
 
@@ -274,7 +298,6 @@ async def index(request: Request):
     if not user:
         return RedirectResponse("/login", status_code=303)
     
-    # Clean and simple: just pass the user profile info
     return render("index.html", display_name=user["display_name"])
 
 @app.get("/profile", response_class=HTMLResponse)
@@ -341,8 +364,8 @@ async def upload(request: Request, file: UploadFile = File(...)) -> dict:
     parsed = json.loads(response_text)
     quiz = parsed.get("questions", parsed.get("quiz", []))
 
-    # IMMEDIATELY save into database with generated quiz
-    db_id = add_upload(user["username"], filename, len(text), len(quiz), json.dumps(quiz))
+    # Save both the quiz and the original text
+    db_id = add_upload(user["username"], filename, len(text), len(quiz), json.dumps(quiz), text)
 
     return {"status": "ok", "db_id": db_id, "filename": filename, "char_count": len(text), "quiz": quiz}
 
@@ -368,3 +391,43 @@ async def delete_lesson(upload_id: int, request: Request):
     conn.commit()
     conn.close()
     return {"status": "ok"}
+
+# --------------------------------------------------------------------------- #
+# Summary endpoint (AI, not stored)
+# --------------------------------------------------------------------------- #
+SUMMARY_PROMPT = """You are a helpful summarizer. Summarize the following lesson text in 2-3 short, clear sentences. Focus on the most important concepts. Keep it engaging for a learner.
+
+Lesson text:
+{lesson_text}
+
+Summary:"""
+
+@app.get("/api/quiz/{upload_id}/summary")
+async def get_summary(upload_id: int, request: Request):
+    user = current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    upload = get_upload_by_id(upload_id, user["username"])
+    if not upload:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    original_text = upload.get("original_text")
+    if not original_text or len(original_text.strip()) == 0:
+        return {"summary": "⚠️ No original lesson text available to generate a summary."}
+
+    prompt = SUMMARY_PROMPT.format(lesson_text=original_text[:3000])  # limit length
+    try:
+        completion = get_client().chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5,
+            max_tokens=200
+        )
+        summary = completion.choices[0].message.content.strip()
+        if not summary:
+            summary = "✨ Could not generate a summary at this time."
+        return {"summary": summary}
+    except Exception as e:
+        print(f"Summary generation error: {e}")
+        return {"summary": "❌ Failed to generate summary. Please try again later."}

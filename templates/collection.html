@@ -9,6 +9,41 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/frontend/css/style.css" />
   <link rel="stylesheet" href="/frontend/css/auth.css" />
+  <style>
+    /* additional styles for the summary dropdown */
+    .file-card {
+      transition: background 0.1s ease;
+    }
+    .file-card:hover {
+      background: #f0f8ff;
+      border-color: #1cb0f6;
+    }
+    .summary-dropdown {
+      transition: all 0.2s ease;
+    }
+    .summary-content {
+      line-height: 1.5;
+    }
+    .summary-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #1cb0f6;
+      font-weight: 800;
+    }
+    .summary-loading::after {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ddf4ff;
+      border-top-color: #1cb0f6;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -28,11 +63,68 @@
 
   <main class="page">
     <h1 class="page-title">📚 Your Lessons</h1>
-    <p class="page-sub">Every lesson file you've uploaded lives here.</p>
+    <p class="page-sub">Every lesson file you've uploaded lives here. Click any lesson to see an AI summary.</p>
 
-    <div class="file-list">
+    <div class="file-list" id="file-list-container">
       {{file_list}}
     </div>
   </main>
+
+  <script>
+    (function() {
+      // For each .file-item, attach click handler to toggle summary and load it
+      const items = document.querySelectorAll('.file-item');
+      
+      items.forEach(item => {
+        const card = item.querySelector('.file-card');
+        const dropdown = item.querySelector('.summary-dropdown');
+        const summaryDiv = dropdown.querySelector('.summary-content');
+        const uploadId = item.getAttribute('data-id');
+        let summaryLoaded = false;   // avoid repeated fetch for the same item
+        
+        // Make the whole card clickable (but not the status badge)
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', async (e) => {
+          // prevent closing if clicking inside summary dropdown again? but it's separate
+          e.stopPropagation();
+          
+          // Toggle dropdown visibility
+          const isVisible = dropdown.style.display !== 'none';
+          if (isVisible) {
+            dropdown.style.display = 'none';
+            return;
+          }
+          
+          dropdown.style.display = 'block';
+          
+          // If summary already fetched, just show it
+          if (summaryLoaded) {
+            // nothing else to do
+            return;
+          }
+          
+          // Show loading state
+          summaryDiv.innerHTML = '<div class="summary-loading">Generating AI summary...</div>';
+          
+          try {
+            const response = await fetch(`/api/quiz/${uploadId}/summary`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            const summaryText = data.summary || 'No summary available.';
+            summaryDiv.innerHTML = `📖 ${summaryText}`;
+            summaryLoaded = true;
+          } catch (err) {
+            console.error(err);
+            summaryDiv.innerHTML = '❌ Could not load summary. Please try again later.';
+          }
+        });
+        
+        // Prevent the dropdown from closing when clicking inside it
+        dropdown.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
